@@ -1,0 +1,46 @@
+{
+	"network_settings": [
+		{
+			"protocol": "opc.tcp",
+			"host": "192.168.0.87",
+			"port": "4840"
+		}
+	],
+	"opc_nodes": [
+		{
+			"name" : "BOOL_IO_Trigger",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.BOOL_IO_Trigger"
+		},
+		{
+			"name" : "BOOL_I_ControllerOn",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.BOOL_I_ControllerOn"
+		},
+		{
+			"name" : "BOOL_I_Ready",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.BOOL_I_Ready"
+		},
+		{
+			"name" : "BOOL_I_Error",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.BOOL_I_Error"
+		},
+		{
+			"name" : "BOOL_IO_DataValid",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.BOOL_IO_DataValid"
+		},
+		{
+			"name" : "REAL_O_InputVector",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.REAL_O_InputVector"
+		},
+		{
+			"name" : "DINT_I_Result",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.DINT_I_Result"
+		}
+	]
+}
