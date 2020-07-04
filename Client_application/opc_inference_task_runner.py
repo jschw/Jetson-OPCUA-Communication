@@ -3,9 +3,13 @@ from opcua import ua
 
 from opcuaTools import getOpcConnection
 
+import time
+import numpy as np
 import logging
 logging.basicConfig()
 #logging.basicConfig(level=logging.DEBUG)
+
+import onnxruntime as onnxrun
 
 
 # Variable declaration
@@ -15,10 +19,11 @@ OBJ_OpcClient = None
 OBJ_OpcNodes = {}
 
 WORD_OpcConfigFilePath = 'opcua_config.json'
+WORD_NeuralNetworkModelFilePath = 'model_curvetypes.onnx'
 
 
 # Input values
-REAL_InputVector = [0,0,0,0,0]
+REAL_InputVector = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
 BOOL_Trigger = False
 
@@ -31,6 +36,10 @@ DINT_ResultVector = 0
 BOOL_Ready = False
 BOOL_Error = False
 BOOL_DataValid = False
+
+# Runtime Vars
+BOOL_EnableLogging = False
+
 
 
 
@@ -54,6 +63,19 @@ while True:
 
 
             # Load NN model into RAM
+            print('Starting up Neural Network Runtime...')
+            print(' ')
+
+            sess = onnxrun.InferenceSession(WORD_NeuralNetworkModelFilePath)
+
+            print('The model expects input shape: ', sess.get_inputs()[0].shape)
+
+			input_name = sess.get_inputs()[0].name
+			label_name = sess.get_outputs()[0].name
+
+			print('Input name: ' + input_name)
+			print('Input label name: ' + label_name)
+			print(' ')
 
 
             BOOL_Error = False
@@ -63,7 +85,8 @@ while True:
             OBJ_OpcNodes['BOOL_I_Ready'].set_value(BOOL_Ready, ua.VariantType.Boolean)
             OBJ_OpcNodes['BOOL_I_Error'].set_value(BOOL_Error, ua.VariantType.Boolean)
 
-            print('There was no error')
+            print('All systems go - no errors.')
+            print(' ')
 
             DINT_Step += 10
         except:
@@ -74,7 +97,7 @@ while True:
             OBJ_OpcNodes['BOOL_I_Ready'].set_value(BOOL_Ready, ua.VariantType.Boolean)
             OBJ_OpcNodes['BOOL_I_Error'].set_value(BOOL_Error, ua.VariantType.Boolean)
 
-            print('There was an error')
+            print('There was an error while starting up.')
 
             DINT_Step = 99
 
@@ -105,16 +128,33 @@ while True:
 
         # Feed forward input vector to model
 
-        
+        # Reshape input vector to (1,20)
 
+
+        # Processing with ONNX Runtime
+        start_preprocessing = time.time()
+		prediction = np.array(sess.run(None, {input_name: REAL_InputVector}))
+		end_preprocessing = time.time()
+
+
+		pred_conf = prediction[0, 0, np.argmax(prediction)]
+		pred_conf = round(pred_conf*100, 2)
+
+		pred_class_index = np.argmax(prediction)
+
+
+
+
+		print('Processing time: ' + str(round((end_preprocessing - start_preprocessing), 3)) + ' ms')
+
+        
+        #DINT_ResultVector += 1
 
         # Write back output to OPC interface
-        DINT_ResultVector += 1
         OBJ_OpcNodes['DINT_I_Result'].set_value(DINT_ResultVector, ua.VariantType.Int32)
 
         print('Output: ')
         print(DINT_ResultVector)
-
 
 
         # Write status values to OPC
@@ -123,7 +163,6 @@ while True:
         OBJ_OpcNodes['BOOL_I_Ready'].set_value(BOOL_Ready, ua.VariantType.Boolean)
         OBJ_OpcNodes['BOOL_IO_DataValid'].set_value(BOOL_DataValid, ua.VariantType.Boolean)
 
-        print('...processing done!')
 
         # Wait for trigger
         DINT_Step = 10
