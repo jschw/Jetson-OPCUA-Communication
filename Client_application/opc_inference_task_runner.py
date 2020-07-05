@@ -40,6 +40,11 @@ BOOL_DataValid = False
 # Runtime Vars
 BOOL_EnableLogging = False
 
+REAL_StartProcessing = 0.0
+REAL_EndProcessing = 0.0
+
+REAL_Prediction = []
+REAL_PredictionConfidence = []
 
 
 
@@ -53,7 +58,7 @@ while True:
         # Try to connect to OPC UA Client
         logging.info("Connecting to OPC UA Client...")
     
-    	# Get connection to OPC server
+        # Get connection to OPC server
         OBJ_OpcClient, OBJ_OpcNodes = getOpcConnection(WORD_OpcConfigFilePath)
 
         # Initialize a few things (set states, loading model into RAM,...)
@@ -70,12 +75,12 @@ while True:
 
             print('The model expects input shape: ', sess.get_inputs()[0].shape)
 
-			input_name = sess.get_inputs()[0].name
-			label_name = sess.get_outputs()[0].name
+            input_name = sess.get_inputs()[0].name
+            label_name = sess.get_outputs()[0].name
 
-			print('Input name: ' + input_name)
-			print('Input label name: ' + label_name)
-			print(' ')
+            print('Input name: ' + input_name)
+            print('Input label name: ' + label_name)
+            print(' ')
 
 
             BOOL_Error = False
@@ -118,43 +123,41 @@ while True:
         OBJ_OpcNodes['BOOL_IO_Trigger'].set_value(False, ua.VariantType.Boolean)
 
         # Processing inputs
-        print('Started processing...')
 
         # Get input vector
-        REAL_InputVector = OBJ_OpcNodes['REAL_O_InputVector'].get_value()
+        REAL_InputVector = np.array(OBJ_OpcNodes['REAL_O_InputVector'].get_value())
+        REAL_InputVector = REAL_InputVector.astype('float32')
 
         print('Input: ')
         print(REAL_InputVector)
 
-        # Feed forward input vector to model
 
         # Reshape input vector to (1,20)
+        REAL_InputVector = REAL_InputVector.reshape(1, len(REAL_InputVector))
+        print('Shape: ' + str(REAL_InputVector.shape))
 
 
         # Processing with ONNX Runtime
-        start_preprocessing = time.time()
-		prediction = np.array(sess.run(None, {input_name: REAL_InputVector}))
-		end_preprocessing = time.time()
+        REAL_StartProcessing = time.time()
+        REAL_Prediction = np.array(sess.run(None, {input_name: REAL_InputVector}))
+        REAL_EndProcessing = time.time()
 
 
-		pred_conf = prediction[0, 0, np.argmax(prediction)]
-		pred_conf = round(pred_conf*100, 2)
+        REAL_PredictionConfidence = REAL_Prediction[0, 0, np.argmax(REAL_Prediction)]
+        REAL_PredictionConfidence = round(REAL_PredictionConfidence*100, 2)
 
-		pred_class_index = np.argmax(prediction)
+        DINT_ResultVector = np.argmax(REAL_Prediction)
 
-
-
-
-		print('Processing time: ' + str(round((end_preprocessing - start_preprocessing), 3)) + ' ms')
-
-        
-        #DINT_ResultVector += 1
 
         # Write back output to OPC interface
         OBJ_OpcNodes['DINT_I_Result'].set_value(DINT_ResultVector, ua.VariantType.Int32)
+        OBJ_OpcNodes['REAL_I_ResultConfidence'].set_value(REAL_PredictionConfidence, ua.VariantType.Float)
+
 
         print('Output: ')
         print(DINT_ResultVector)
+        print('Processing time: ' + str(round((REAL_EndProcessing - REAL_StartProcessing), 4)) + ' ms')
+        print(' ')
 
 
         # Write status values to OPC

@@ -41,6 +41,11 @@
 			"name" : "DINT_I_Result",
 			"namespace_index": "4",
 			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.DINT_I_Result"
+		},
+		{
+			"name" : "REAL_I_ResultConfidence",
+			"namespace_index": "4",
+			"string_id": "|var|CODESYS Control for Raspberry Pi SL.Application.Jetson_Interface.REAL_I_ResultConfidence"
 		}
 	]
 }
