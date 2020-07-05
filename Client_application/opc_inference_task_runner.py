@@ -13,8 +13,6 @@ import onnxruntime as onnxrun
 
 
 # Variable declaration
-DINT_Step = 0
-
 OBJ_OpcClient = None
 OBJ_OpcNodes = {}
 
@@ -38,7 +36,9 @@ BOOL_Error = False
 BOOL_DataValid = False
 
 # Runtime Vars
-BOOL_EnableLogging = False
+DINT_Step = 0
+
+BOOL_EnableLogToCli = True
 
 REAL_StartProcessing = 0.0
 REAL_EndProcessing = 0.0
@@ -46,6 +46,10 @@ REAL_EndProcessing = 0.0
 REAL_Prediction = []
 REAL_PredictionConfidence = []
 
+
+def printlog(msg=str):
+    if BOOL_EnableLogToCli:
+        print(msg)
 
 
 while True:
@@ -56,7 +60,7 @@ while True:
         # Initialization
 
         # Try to connect to OPC UA Client
-        logging.info("Connecting to OPC UA Client...")
+        printlog("Connecting to OPC UA Client...")
     
         # Get connection to OPC server
         OBJ_OpcClient, OBJ_OpcNodes = getOpcConnection(WORD_OpcConfigFilePath)
@@ -68,19 +72,22 @@ while True:
 
 
             # Load NN model into RAM
-            print('Starting up Neural Network Runtime...')
-            print(' ')
+            printlog('Starting up Neural Network Runtime...')
+            printlog(' ')
 
             sess = onnxrun.InferenceSession(WORD_NeuralNetworkModelFilePath)
 
-            print('The model expects input shape: ', sess.get_inputs()[0].shape)
 
-            input_name = sess.get_inputs()[0].name
-            label_name = sess.get_outputs()[0].name
+            WORD_InputName = sess.get_inputs()[0].name
+            WORD_OutputName = sess.get_outputs()[0].name
+            WORD_InputShape = str(sess.get_inputs()[0].shape)
 
-            print('Input name: ' + input_name)
-            print('Input label name: ' + label_name)
-            print(' ')
+            printlog('The model expects input shape: ' + WORD_InputShape)
+
+
+            printlog('Input name: ' + WORD_InputName)
+            printlog('Input label name: ' + WORD_OutputName)
+            printlog(' ')
 
 
             BOOL_Error = False
@@ -90,8 +97,8 @@ while True:
             OBJ_OpcNodes['BOOL_I_Ready'].set_value(BOOL_Ready, ua.VariantType.Boolean)
             OBJ_OpcNodes['BOOL_I_Error'].set_value(BOOL_Error, ua.VariantType.Boolean)
 
-            print('All systems go - no errors.')
-            print(' ')
+            printlog('All systems go - no errors.')
+            printlog(' ')
 
             DINT_Step += 10
         except:
@@ -102,7 +109,7 @@ while True:
             OBJ_OpcNodes['BOOL_I_Ready'].set_value(BOOL_Ready, ua.VariantType.Boolean)
             OBJ_OpcNodes['BOOL_I_Error'].set_value(BOOL_Error, ua.VariantType.Boolean)
 
-            print('There was an error while starting up.')
+            printlog('There was an error while starting up.')
 
             DINT_Step = 99
 
@@ -128,18 +135,18 @@ while True:
         REAL_InputVector = np.array(OBJ_OpcNodes['REAL_O_InputVector'].get_value())
         REAL_InputVector = REAL_InputVector.astype('float32')
 
-        print('Input: ')
-        print(REAL_InputVector)
+        printlog('Input: ')
+        printlog(REAL_InputVector)
 
 
         # Reshape input vector to (1,20)
         REAL_InputVector = REAL_InputVector.reshape(1, len(REAL_InputVector))
-        print('Shape: ' + str(REAL_InputVector.shape))
+        printlog('Shape: ' + str(REAL_InputVector.shape))
 
 
         # Processing with ONNX Runtime
         REAL_StartProcessing = time.time()
-        REAL_Prediction = np.array(sess.run(None, {input_name: REAL_InputVector}))
+        REAL_Prediction = np.array(sess.run(None, {WORD_InputName: REAL_InputVector}))
         REAL_EndProcessing = time.time()
 
 
@@ -154,8 +161,9 @@ while True:
         OBJ_OpcNodes['REAL_I_ResultConfidence'].set_value(REAL_PredictionConfidence, ua.VariantType.Float)
 
 
-        print('Output: ')
-        print(DINT_ResultVector)
+        printlog('Output: ')
+        printlog(DINT_ResultVector)
+
         print('Processing time: ' + str(round((REAL_EndProcessing - REAL_StartProcessing), 4)) + ' ms')
         print(' ')
 
