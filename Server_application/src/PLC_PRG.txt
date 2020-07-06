@@ -1,0 +1,89 @@
+PROGRAM PLC_PRG
+VAR
+	
+	BOOL_O_JetsonTrigger : BOOL := FALSE;
+	
+	DINT_Step : DINT := 0;
+	
+	DINT_InputVectorLength : DINT := 19;
+	
+	DINT_i : DINT := 0;
+	
+	DINT_j : DINT := 0;
+	
+	// Parabola, class 2
+	//REAL_Datapoints : ARRAY[0..19] OF REAL := [-8.650029,-2.4827743,-5.794193,-0.71512717,-1.7804298,1.1368442,3.3912594,3.0731397,9.720875,5.0937595,17.208418,7.198704,25.853886,9.387972,35.65728,11.661565,46.6186,14.019482,58.737846,16.461723];
+	//REAL_Datapoints : ARRAY[0..20] OF REAL := [2.657044,3.107077,0.3754372,4.4302077,-3.210403,8.717666,-8.100476,15.96945,-14.294784,26.185562,-21.793324,39.366,-30.596098,55.51077,-40.703106,74.619865,-52.114346,96.69328,-64.82982,121.73103];
+ 
+	
+	// Line, class 1
+	REAL_Datapoints : ARRAY[0..20] OF REAL := [-4.718588,22.690657,-5.921893,18.50733,-7.1251984,14.324,-8.328504,10.140673,-9.531809,5.957344,-10.735114,1.7740154,-11.938419,-2.409313,-13.141725,-6.5926414,-14.34503,-10.7759695,-15.548334,-14.959298];
+ 	//REAL_Datapoints : ARRAY[0..20] OF REAL := [-8.875441,10.960011,-5.9371996,8.36433,-2.9989586,5.7686496,-0.0607175,3.1729689,2.8775234,0.5772884,5.8157644,-2.018392,8.754005,-4.614073,11.692246,-7.209753,14.630487,-9.805433,17.56873,-12.401114];
+ 
+	
+	// Circle, class 0
+	//REAL_Datapoints : ARRAY[0..20] OF REAL := [8.344428,7.5317063,6.353961,8.339353,4.2534876,8.789087,2.106829,8.867247,-0.020789294,8.571455,-2.0647204,7.9107003,-3.9628608,6.905059,-5.6575365,5.585087,-7.097255,3.9908907,-8.238273,2.1709094];
+ 	//REAL_Datapoints : ARRAY[0..20] OF REAL := [-6.900654,3.5684733,-6.2709513,0.8225967,-5.1739984,-1.7722172,-3.6431265,-4.137126,-1.7248496,-6.200274,0.5225462,-7.898972,3.0307748,-9.181607,5.723625,-10.009208,8.519277,-10.356626,11.332784,-10.213305];
+	
+END_VAR
+
+
+
+// Control Sequence
+
+CASE DINT_Step OF
+	00:
+		// Initialization of interface
+		Jetson_Interface.BOOL_I_ControllerOn := FALSE;
+		Jetson_Interface.BOOL_IO_DataValid := FALSE;
+		Jetson_Interface.BOOL_I_Error := TRUE;
+		Jetson_Interface.BOOL_I_Ready := FALSE;
+		Jetson_Interface.BOOL_O_FaultReset := FALSE;
+		Jetson_Interface.DINT_I_ActJobNo := 1;
+		Jetson_Interface.DINT_O_SetpointJobNo := 1;
+		Jetson_Interface.DINT_I_Result := 0;
+		Jetson_interface.REAL_I_ResultConfidence := 0;
+		FOR DINT_i := 0 TO DINT_InputVectorLength BY 1 DO
+			Jetson_Interface.REAL_O_InputVector[DINT_i] := 0.0;
+		END_FOR;
+		DINT_i := 0;
+		
+		DINT_Step := 10;
+	
+	10:	
+		// Wait for trigger to Jetson
+		IF BOOL_O_JetsonTrigger THEN
+			DINT_Step := 20;
+			BOOL_O_JetsonTrigger := FALSE;
+		END_IF
+		
+	20:
+		// Send trigger to jetson via OPC UA
+		IF Jetson_Interface.BOOL_I_ControllerOn AND Jetson_Interface.BOOL_I_Ready AND NOT Jetson_Interface.BOOL_I_Error THEN
+			// Send input vector to interface
+			FOR DINT_j := 0 TO DINT_InputVectorLength DO
+				Jetson_Interface.REAL_O_InputVector[DINT_j] := REAL_Datapoints[DINT_j];
+			END_FOR
+			
+			// Send trigger to interface
+			Jetson_Interface.BOOL_IO_Trigger := TRUE;
+			
+		END_IF;
+		
+		DINT_Step := 30;
+		
+	30:
+		// Wait for result
+		IF Jetson_Interface.BOOL_IO_DataValid AND Jetson_Interface.BOOL_I_Ready THEN
+			// Reset Data Valid and Input
+			Jetson_Interface.BOOL_IO_DataValid := FALSE;
+			
+			FOR DINT_i := 0 TO DINT_InputVectorLength BY 1 DO
+				Jetson_Interface.REAL_O_InputVector[DINT_i] := 0.0;
+			END_FOR;
+			DINT_i := 0;
+			
+			DINT_Step := 10;
+		END_IF;
+	
+END_CASE;

@@ -1,0 +1,23 @@
+{attribute 'qualified_only'}
+VAR_GLOBAL	
+	// Outputs
+	BOOL_O_FaultReset 		: BOOL;
+	REAL_O_InputVector		: ARRAY[0..19] OF REAL;
+	DINT_O_SetpointJobNo 		: DINT;
+	
+	// Inputs
+	BOOL_I_ControllerOn 		: BOOL;
+	BOOL_I_Error 			: BOOL;
+	BOOL_I_Ready 			: BOOL;
+	DINT_I_Result 			: DINT;
+	REAL_I_ResultConfidence		: REAL;
+	DINT_I_ActJobNo 		: DINT;
+	
+	WORD_I_Errorcode 		: WORD;
+	WORD_I_Logging 			: WORD;
+	
+	// Inputs / Outputs
+	BOOL_IO_Trigger 		: BOOL;
+	BOOL_IO_DataValid		: BOOL;
+	
+END_VAR
